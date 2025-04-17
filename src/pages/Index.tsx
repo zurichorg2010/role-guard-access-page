@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,12 +5,12 @@ import { Settings, Shield, Lock, Info, Users } from 'lucide-react';
 import { ROLE, hasAccess, applyRoleRestrictions, getCurrentRole } from '@/utils/roleGuard';
 import SettingsModal from '@/components/SettingsModal';
 import RoleIndicator from '@/components/RoleIndicator';
+import { GitHubSyncForm } from '@/components/GitHubSyncForm';
 
 const Index = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   useEffect(() => {
-    // Apply role-based restrictions on initial load and when role changes
     applyRoleRestrictions();
     
     const handleRoleChange = () => {
@@ -36,7 +35,7 @@ const Index = () => {
           <RoleIndicator />
         </header>
 
-        <div className="flex justify-center">
+        <div className="flex justify-center gap-4">
           <Button 
             onClick={() => setIsSettingsOpen(true)}
             className="flex items-center gap-2"
@@ -46,8 +45,21 @@ const Index = () => {
           </Button>
         </div>
 
+        {getCurrentRole() === ROLE.DEVELOPER && (
+          <Card className="max-w-md mx-auto">
+            <CardHeader>
+              <CardTitle>GitHub Sync</CardTitle>
+              <CardDescription>
+                Sync your changes to GitHub with a commit message
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <GitHubSyncForm />
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Public Section - Visible to All */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -67,7 +79,6 @@ const Index = () => {
             </CardFooter>
           </Card>
 
-          {/* Admin Content */}
           <Card data-role={ROLE.ADMIN}>
             <CardHeader className="bg-green-50 dark:bg-green-900/20">
               <CardTitle className="flex items-center gap-2">
@@ -95,7 +106,6 @@ const Index = () => {
             </CardFooter>
           </Card>
 
-          {/* Owner Content */}
           <Card data-role={ROLE.OWNER}>
             <CardHeader className="bg-blue-50 dark:bg-blue-900/20">
               <CardTitle className="flex items-center gap-2">
@@ -123,7 +133,6 @@ const Index = () => {
             </CardFooter>
           </Card>
 
-          {/* Developer Content */}
           <Card data-role={ROLE.DEVELOPER}>
             <CardHeader className="bg-purple-50 dark:bg-purple-900/20">
               <CardTitle className="flex items-center gap-2">
@@ -151,7 +160,6 @@ const Index = () => {
             </CardFooter>
           </Card>
 
-          {/* Custom Role Example - Beta Tester */}
           <Card data-role="betaTester">
             <CardHeader className="bg-accent/10">
               <CardTitle className="flex items-center gap-2">
@@ -199,7 +207,6 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Settings Modal */}
       <SettingsModal 
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
