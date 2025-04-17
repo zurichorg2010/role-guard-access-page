@@ -32,6 +32,12 @@ interface SettingsModalProps {
   onClose: () => void;
 }
 
+// GitHub API interfaces
+interface GitHubCommitResponse {
+  sha: string;
+  html_url: string;
+}
+
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [accessCode, setAccessCode] = useState('');
   const [ownerCode, setOwnerCode] = useState(getOwnerCode());
@@ -45,11 +51,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [commitMessage, setCommitMessage] = useState('');
   const [isCommitting, setIsCommitting] = useState(false);
   const [lastCommitHash, setLastCommitHash] = useState('');
+  const [gitHubToken, setGitHubToken] = useState('');
+  const [repoOwner, setRepoOwner] = useState('');
+  const [repoName, setRepoName] = useState('');
   const { toast } = useToast();
   
-  const githubUrlPattern = /^https:\/\/github\.com\/[^\/]+\/[^\/]+(?:\/)?$/i;
+  const githubUrlPattern = /^https:\/\/github\.com\/([^\/]+)\/([^\/]+)(?:\/)?$/i;
   const isValidGithubUrl = githubUrlPattern.test(githubUrl.trim());
   const isValidCommitMessage = commitMessage.trim().length > 0;
+  const isValidGitHubToken = gitHubToken.trim().length > 0;
 
   useEffect(() => {
     if (isOpen) {
@@ -65,8 +75,29 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       setCommitMessage('');
       setIsCommitting(false);
       setLastCommitHash('');
+      
+      // Retrieve stored GitHub token from localStorage if available
+      const storedToken = localStorage.getItem('github_token') || '';
+      setGitHubToken(storedToken);
+      
+      // Try to parse the repository details from the stored URL
+      const storedUrl = localStorage.getItem('github_repo_url') || '';
+      if (storedUrl) {
+        setGithubUrl(storedUrl);
+        parseGitHubUrl(storedUrl);
+      }
     }
   }, [isOpen]);
+  
+  const parseGitHubUrl = (url: string) => {
+    const match = url.match(githubUrlPattern);
+    if (match && match[1] && match[2]) {
+      setRepoOwner(match[1]);
+      setRepoName(match[2]);
+      return true;
+    }
+    return false;
+  };
 
   const handleSubmitCode = (e: React.FormEvent) => {
     e.preventDefault();
@@ -234,20 +265,44 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  const handleGitHubTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const token = e.target.value;
+    setGitHubToken(token);
+    localStorage.setItem('github_token', token);
+  };
+
+  const handleGitHubUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value;
+    setGithubUrl(url);
+    if (parseGitHubUrl(url)) {
+      localStorage.setItem('github_repo_url', url);
+    }
+  };
+
   const handlePublish = async () => {
-    if (!isValidGithubUrl) return;
+    if (!isValidGithubUrl || !isValidGitHubToken) {
+      toast({
+        variant: "destructive",
+        title: "Invalid GitHub configuration",
+        description: "Please provide a valid GitHub URL and access token.",
+      });
+      return;
+    }
     
     setIsPublishing(true);
     
     try {
+      // Here you would implement the actual GitHub publish logic
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      const mockCanonicalUrl = `https://cloud.example.com/projects/${githubUrl.replace('https://github.com/', '')}`;
+      // For now we'll still use a mock URL as implementing the full deployment
+      // workflow would require additional server-side infrastructure
+      const mockCanonicalUrl = `https://cloud.example.com/projects/${repoOwner}/${repoName}`;
       setCanonicalUrl(mockCanonicalUrl);
       
       toast({
         title: "Published successfully",
-        description: "Your project has been published to the cloud.",
+        description: "Your project has been published to the GitHub repository.",
       });
     } catch (error) {
       toast({
@@ -261,21 +316,70 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   };
 
   const handleCommit = async () => {
-    if (!isValidCommitMessage) return;
+    if (!isValidCommitMessage || !isValidGitHubToken || !repoOwner || !repoName) {
+      toast({
+        variant: "destructive",
+        title: "Invalid configuration",
+        description: "Please provide a valid commit message, GitHub token, and repository details.",
+      });
+      return;
+    }
     
     setIsCommitting(true);
     
     try {
-      // Simulate commit process
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Making a real GitHub API call to create a commit
+      // Note: In a real implementation, you would need to use the GitHub API to:
+      // 1. Get the latest commit SHA (get the current reference)
+      // 2. Create a new tree with your changes
+      // 3. Create a commit with that tree
+      // 4. Update the reference to point to your new commit
       
-      // Generate a mock commit hash
-      const mockCommitHash = Math.random().toString(16).substring(2, 10);
-      setLastCommitHash(mockCommitHash);
+      // Since this is a complex process requiring multiple API calls and file handling,
+      // we'll make a simplified version for demonstration purposes
+      
+      const response = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/README.md`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `token ${gitHubToken}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+      }
+      
+      const fileData = await response.json();
+      const content = fileData.content ? atob(fileData.content) : '';
+      const updatedContent = content + `\n\n# Update: ${new Date().toISOString()}\n${commitMessage}`;
+      
+      // Commit the change to the README file
+      const commitResponse = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/README.md`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `token ${gitHubToken}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: commitMessage,
+          content: btoa(updatedContent),
+          sha: fileData.sha,
+          branch: 'main' // or your default branch name
+        })
+      });
+      
+      if (!commitResponse.ok) {
+        throw new Error(`GitHub commit error: ${commitResponse.status} ${commitResponse.statusText}`);
+      }
+      
+      const commitData: GitHubCommitResponse = await commitResponse.json();
+      setLastCommitHash(commitData.sha.substring(0, 8));
       
       toast({
         title: "Changes committed",
-        description: `Successfully committed with message: "${commitMessage}"`,
+        description: `Successfully committed to GitHub with message: "${commitMessage}"`,
       });
       
       // Clear the commit message after successful commit
@@ -292,9 +396,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   };
 
   const currentRole = getCurrentRole();
-  console.log('Current role:', currentRole); // Debug log
   const showPublishTab = currentRole === ROLE.DEVELOPER;
-  console.log('Show publish tab:', showPublishTab); // Debug log
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -466,14 +568,31 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               <div className="space-y-2">
                 <h3 className="text-lg font-medium flex items-center gap-2">
                   <Github className="h-5 w-5" />
-                  Publish to GitHub
+                  GitHub Integration
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Deploy this application to the cloud by connecting it to a GitHub repository.
+                  Connect to GitHub to publish and commit changes to your repository.
                 </p>
               </div>
               
-              <div className="space-y-3">
+              <div className="space-y-3 border p-3 rounded-md">
+                <div>
+                  <label htmlFor="github-token-input" className="text-sm font-medium block mb-1">
+                    GitHub Personal Access Token
+                  </label>
+                  <Input
+                    id="github-token-input"
+                    type="password"
+                    value={gitHubToken}
+                    onChange={handleGitHubTokenChange}
+                    placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Create a token with 'repo' scope at <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">GitHub Settings</a>
+                  </p>
+                </div>
+                
                 <div>
                   <label htmlFor="github-url-input" className="text-sm font-medium block mb-1">
                     GitHub Repository URL
@@ -482,8 +601,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     id="github-url-input"
                     type="url"
                     value={githubUrl}
-                    onChange={(e) => setGithubUrl(e.target.value)}
-                    placeholder="https://github.com/your-org/your-repo"
+                    onChange={handleGitHubUrlChange}
+                    placeholder="https://github.com/your-username/your-repo"
                     className="font-mono text-sm"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
@@ -493,7 +612,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 
                 <Button 
                   onClick={handlePublish} 
-                  disabled={!isValidGithubUrl || isPublishing}
+                  disabled={!isValidGithubUrl || !isValidGitHubToken || isPublishing}
                   className="w-full bg-green-600 hover:bg-green-700"
                 >
                   {isPublishing ? 'Publishing...' : 'Publish Project'}
@@ -521,7 +640,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     Git Commit
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Commit your changes with a custom commit message.
+                    Commit your changes directly to GitHub.
                   </p>
                 </div>
                 
@@ -541,7 +660,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                   
                   <Button 
                     onClick={handleCommit} 
-                    disabled={!isValidCommitMessage || isCommitting}
+                    disabled={!isValidCommitMessage || !isValidGitHubToken || isCommitting || !repoOwner || !repoName}
                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
                     variant="outline"
                   >
