@@ -29,6 +29,10 @@ export function GitHubSyncForm() {
   async function onSubmit(data: FormValues) {
     setIsSyncing(true);
     try {
+      // Log the commit message to verify it's being captured
+      console.log("Commit message:", data.commitMessage);
+      
+      // Ensure we're passing the commit message correctly to the event
       window.dispatchEvent(new CustomEvent('lovable:commit', {
         detail: {
           message: data.commitMessage,
@@ -42,6 +46,7 @@ export function GitHubSyncForm() {
         description: `Commit message: "${data.commitMessage}"`,
       });
 
+      // Wait for the commit process to complete
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       toast({
@@ -51,6 +56,7 @@ export function GitHubSyncForm() {
 
       form.reset();
     } catch (error) {
+      console.error("GitHub sync error:", error);
       toast({
         variant: "destructive",
         title: "Sync failed",
