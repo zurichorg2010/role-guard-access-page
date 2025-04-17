@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -11,8 +10,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Key, Shield, UserCog, Github } from 'lucide-react';
+import { Settings, Key, Shield, UserCog, Github, GitCommit } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { Textarea } from '@/components/ui/textarea';
 import { 
   ROLE, 
   getCurrentRole, 
@@ -42,10 +42,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [githubUrl, setGithubUrl] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);
   const [canonicalUrl, setCanonicalUrl] = useState('');
+  const [commitMessage, setCommitMessage] = useState('');
+  const [isCommitting, setIsCommitting] = useState(false);
+  const [lastCommitHash, setLastCommitHash] = useState('');
   const { toast } = useToast();
   
   const githubUrlPattern = /^https:\/\/github\.com\/[^\/]+\/[^\/]+(?:\/)?$/i;
   const isValidGithubUrl = githubUrlPattern.test(githubUrl.trim());
+  const isValidCommitMessage = commitMessage.trim().length > 0;
 
   useEffect(() => {
     if (isOpen) {
@@ -58,6 +62,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       setGithubUrl('');
       setCanonicalUrl('');
       setIsPublishing(false);
+      setCommitMessage('');
+      setIsCommitting(false);
+      setLastCommitHash('');
     }
   }, [isOpen]);
 
@@ -250,6 +257,37 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       });
     } finally {
       setIsPublishing(false);
+    }
+  };
+
+  const handleCommit = async () => {
+    if (!isValidCommitMessage) return;
+    
+    setIsCommitting(true);
+    
+    try {
+      // Simulate commit process
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Generate a mock commit hash
+      const mockCommitHash = Math.random().toString(16).substring(2, 10);
+      setLastCommitHash(mockCommitHash);
+      
+      toast({
+        title: "Changes committed",
+        description: `Successfully committed with message: "${commitMessage}"`,
+      });
+      
+      // Clear the commit message after successful commit
+      setCommitMessage('');
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Commit failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+      });
+    } finally {
+      setIsCommitting(false);
     }
   };
 
@@ -474,6 +512,49 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     </a>
                   </div>
                 )}
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-border">
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium flex items-center gap-2">
+                    <GitCommit className="h-5 w-5" />
+                    Git Commit
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Commit your changes with a custom commit message.
+                  </p>
+                </div>
+                
+                <div className="space-y-3 mt-3">
+                  <div>
+                    <label htmlFor="commit-message-input" className="text-sm font-medium block mb-1">
+                      Commit Message
+                    </label>
+                    <Textarea
+                      id="commit-message-input"
+                      value={commitMessage}
+                      onChange={(e) => setCommitMessage(e.target.value)}
+                      placeholder="Enter your commit message here..."
+                      className="min-h-[80px] font-mono text-sm"
+                    />
+                  </div>
+                  
+                  <Button 
+                    onClick={handleCommit} 
+                    disabled={!isValidCommitMessage || isCommitting}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                    variant="outline"
+                  >
+                    {isCommitting ? 'Committing...' : 'Commit Changes'}
+                  </Button>
+                  
+                  {lastCommitHash && (
+                    <div className="p-3 border rounded-md bg-secondary">
+                      <span className="text-sm font-medium">Last Commit:</span>
+                      <span className="ml-2 font-mono text-sm">{lastCommitHash}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </TabsContent>
           )}
