@@ -32,12 +32,6 @@ interface SettingsModalProps {
   onClose: () => void;
 }
 
-// GitHub API interfaces
-interface GitHubCommitResponse {
-  sha: string;
-  html_url: string;
-}
-
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [accessCode, setAccessCode] = useState('');
   const [ownerCode, setOwnerCode] = useState(getOwnerCode());
@@ -58,7 +52,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const githubUrlPattern = /^https:\/\/github\.com\/([^\/]+)\/([^\/]+)(?:\/)?$/i;
   const isValidGithubUrl = githubUrlPattern.test(githubUrl.trim());
   const isValidCommitMessage = commitMessage.trim().length > 0;
-  const githubIntegrated = true; // Assuming GitHub is already integrated
+  const githubIntegrated = true;
 
   useEffect(() => {
     if (isOpen) {
@@ -318,15 +312,23 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         description: `Commit message: "${commitMessage}"`,
       });
       
-      window.dispatchEvent(new CustomEvent('lovable:github-commit', {
-        detail: {
+      const response = await fetch('/api/github/commit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           message: commitMessage,
           repo: `${repoOwner}/${repoName}`,
           branch: 'main'
-        }
-      }));
+        }),
+      });
       
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('Commit response:', response);
+      
+      if (!response.ok) {
+        throw new Error('Failed to commit changes. Check repository access and permissions.');
+      }
       
       setLastCommitHash('Committed');
       
@@ -337,10 +339,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       
       setCommitMessage('');
     } catch (error) {
+      console.error('Commit error:', error);
       toast({
         variant: "destructive",
         title: "Commit failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description: error instanceof Error ? error.message : "An unknown error occurred during commit",
       });
     } finally {
       setIsCommitting(false);
