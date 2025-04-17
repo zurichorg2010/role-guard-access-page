@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -253,7 +254,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   };
 
   const currentRole = getCurrentRole();
+  console.log('Current role:', currentRole); // Debug log
   const showPublishTab = currentRole === ROLE.DEVELOPER;
+  console.log('Show publish tab:', showPublishTab); // Debug log
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -261,25 +264,31 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" /> Role Access Settings
+            {currentRole === ROLE.DEVELOPER && (
+              <span className="ml-2 text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 px-2 py-1 rounded-full">
+                Developer Mode
+              </span>
+            )}
           </DialogTitle>
           <DialogDescription>
             Enter access codes to change roles or manage existing role codes.
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs defaultValue="access" className="w-full">
-          <TabsList className={`grid w-full ${showPublishTab ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        <Tabs defaultValue={showPublishTab ? "publish" : "access"} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="access" className="flex items-center gap-1">
               <Key className="h-4 w-4" /> Access
             </TabsTrigger>
             <TabsTrigger value="manage" className="flex items-center gap-1">
-              <UserCog className="h-4 w-4" /> Manage Codes
+              <UserCog className="h-4 w-4" /> Manage
             </TabsTrigger>
-            {showPublishTab && (
-              <TabsTrigger value="publish" className="flex items-center gap-1">
-                <Github className="h-4 w-4" /> Publish
-              </TabsTrigger>
-            )}
+            <TabsTrigger 
+              value="publish" 
+              className={`flex items-center gap-1 ${showPublishTab ? "" : "hidden"}`}
+            >
+              <Github className="h-4 w-4" /> Publish
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="access" className="mt-4">
@@ -417,7 +426,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
           {showPublishTab && (
             <TabsContent value="publish" className="mt-4 space-y-4">
               <div className="space-y-2">
-                <h3 className="text-lg font-medium">Publish to Cloud</h3>
+                <h3 className="text-lg font-medium flex items-center gap-2">
+                  <Github className="h-5 w-5" />
+                  Publish to GitHub
+                </h3>
                 <p className="text-sm text-muted-foreground">
                   Deploy this application to the cloud by connecting it to a GitHub repository.
                 </p>
@@ -444,9 +456,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 <Button 
                   onClick={handlePublish} 
                   disabled={!isValidGithubUrl || isPublishing}
-                  className="w-full"
+                  className="w-full bg-green-600 hover:bg-green-700"
                 >
-                  {isPublishing ? 'Publishing...' : 'Publish'}
+                  {isPublishing ? 'Publishing...' : 'Publish Project'}
                 </Button>
                 
                 {canonicalUrl && (
