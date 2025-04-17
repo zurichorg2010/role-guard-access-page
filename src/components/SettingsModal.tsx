@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -316,25 +317,37 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     setIsCommitting(true);
     
     try {
-      // Using the existing GitHub integration to make a commit
-      // This would be handled by Lovable's built-in GitHub integration
-      
       toast({
         title: "Committing changes...",
-        description: "Your changes are being committed to GitHub.",
+        description: `Commit message: "${commitMessage}"`,
       });
       
-      // Simulated commit process using Lovable's GitHub integration
-      // In a real implementation, this would call Lovable's built-in GitHub API
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // This will use the built-in Lovable GitHub integration
+      // and pass the commit message to GitHub
+      const response = await fetch('/api/github/commit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          owner: repoOwner,
+          repo: repoName,
+          message: commitMessage, // This ensures your commit message is sent to GitHub
+          branch: 'main' // Default to main branch
+        }),
+      });
       
-      // Generate a commit hash just for UI feedback
-      const commitHash = Math.random().toString(16).substring(2, 10);
-      setLastCommitHash(commitHash);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to commit changes');
+      }
+      
+      const data = await response.json();
+      setLastCommitHash(data.sha || 'Committed');
       
       toast({
         title: "Changes committed",
-        description: `Successfully committed to GitHub with message: "${commitMessage}"`,
+        description: `Successfully committed with message: "${commitMessage}"`,
       });
       
       // Clear the commit message after successful commit
@@ -578,7 +591,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     Git Commit
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Commit your changes directly to GitHub using Lovable's integration.
+                    Commit your changes directly to GitHub.
                   </p>
                 </div>
                 
