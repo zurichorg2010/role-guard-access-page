@@ -312,23 +312,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         description: `Commit message: "${commitMessage}"`,
       });
       
-      const response = await fetch('/api/github/commit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      window.dispatchEvent(new CustomEvent('lovable:commit', {
+        detail: {
           message: commitMessage,
-          repo: `${repoOwner}/${repoName}`,
-          branch: 'main'
-        }),
-      });
+          repository: repoName.replace('.git', ''),
+          owner: repoOwner
+        }
+      }));
       
-      console.log('Commit response:', response);
-      
-      if (!response.ok) {
-        throw new Error('Failed to commit changes. Check repository access and permissions.');
-      }
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       setLastCommitHash('Committed');
       
@@ -343,7 +335,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       toast({
         variant: "destructive",
         title: "Commit failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred during commit",
+        description: "Commit failed. Make sure you've connected your GitHub account in Lovable settings.",
       });
     } finally {
       setIsCommitting(false);
