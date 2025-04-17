@@ -27,24 +27,29 @@ const RoleIndicator = () => {
   const getRoleClass = () => {
     switch (currentRole) {
       case ROLE.DEVELOPER:
-        return 'role-developer';
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
       case ROLE.OWNER:
-        return 'role-owner';
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
       case ROLE.ADMIN:
-        return 'role-admin';
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
       case ROLE.VISITOR:
-        return 'role-visitor';
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
       default:
-        return 'role-custom';
+        return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300';
     }
   };
   
   return (
     <div className="role-pill fade-in mb-4 text-center flex items-center justify-center gap-2">
       <span className="text-sm font-medium mr-1">Current Role:</span>
-      <Badge variant="outline" className={cn("capitalize", getRoleClass())}>
+      <Badge variant="outline" className={cn("capitalize px-3 py-1", getRoleClass())}>
         {currentRole}
       </Badge>
+      {currentRole === ROLE.DEVELOPER && (
+        <Badge variant="outline" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 ml-1">
+          Publish Enabled
+        </Badge>
+      )}
     </div>
   );
 };

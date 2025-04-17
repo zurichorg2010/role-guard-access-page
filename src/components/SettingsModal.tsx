@@ -42,7 +42,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [isPublishing, setIsPublishing] = useState(false);
   const [canonicalUrl, setCanonicalUrl] = useState('');
   const { toast } = useToast();
-  const currentRole = getCurrentRole();
   
   const githubUrlPattern = /^https:\/\/github\.com\/[^\/]+\/[^\/]+(?:\/)?$/i;
   const isValidGithubUrl = githubUrlPattern.test(githubUrl.trim());
@@ -253,6 +252,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  const currentRole = getCurrentRole();
   const showPublishTab = currentRole === ROLE.DEVELOPER;
 
   return (
