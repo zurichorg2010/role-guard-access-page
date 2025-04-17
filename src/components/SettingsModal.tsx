@@ -10,9 +10,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Key, Shield, UserCog, Github, GitCommit } from 'lucide-react';
+import { Settings, Key, Shield, UserCog } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Textarea } from '@/components/ui/textarea';
 import { 
   ROLE, 
   getCurrentRole, 
@@ -39,54 +38,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [customRoles, setCustomRoles] = useState<Record<string, string>>(getCustomRoles());
   const [newRoleName, setNewRoleName] = useState('');
   const [newRoleCode, setNewRoleCode] = useState('');
-  const [githubUrl, setGithubUrl] = useState('');
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [canonicalUrl, setCanonicalUrl] = useState('');
-  const [commitMessage, setCommitMessage] = useState('');
-  const [isCommitting, setIsCommitting] = useState(false);
-  const [lastCommitHash, setLastCommitHash] = useState('');
-  const [repoOwner, setRepoOwner] = useState('');
-  const [repoName, setRepoName] = useState('');
   const { toast } = useToast();
   
-  const githubUrlPattern = /^https:\/\/github\.com\/([^\/]+)\/([^\/]+)(?:\/)?$/i;
-  const isValidGithubUrl = githubUrlPattern.test(githubUrl.trim());
-  const isValidCommitMessage = commitMessage.trim().length > 0;
-  const githubIntegrated = true;
-
-  useEffect(() => {
-    if (isOpen) {
-      setAccessCode('');
-      setOwnerCode(getOwnerCode());
-      setAdminCode(getAdminCode());
-      setCustomRoles(getCustomRoles());
-      setNewRoleName('');
-      setNewRoleCode('');
-      setGithubUrl('');
-      setCanonicalUrl('');
-      setIsPublishing(false);
-      setCommitMessage('');
-      setIsCommitting(false);
-      setLastCommitHash('');
-      
-      const storedUrl = localStorage.getItem('github_repo_url') || '';
-      if (storedUrl) {
-        setGithubUrl(storedUrl);
-        parseGitHubUrl(storedUrl);
-      }
-    }
-  }, [isOpen]);
-  
-  const parseGitHubUrl = (url: string) => {
-    const match = url.match(githubUrlPattern);
-    if (match && match[1] && match[2]) {
-      setRepoOwner(match[1]);
-      setRepoName(match[2]);
-      return true;
-    }
-    return false;
-  };
-
   const handleSubmitCode = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -253,97 +206,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleGitHubUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const url = e.target.value;
-    setGithubUrl(url);
-    if (parseGitHubUrl(url)) {
-      localStorage.setItem('github_repo_url', url);
+  useEffect(() => {
+    if (isOpen) {
+      setAccessCode('');
+      setOwnerCode(getOwnerCode());
+      setAdminCode(getAdminCode());
+      setCustomRoles(getCustomRoles());
+      setNewRoleName('');
+      setNewRoleCode('');
     }
-  };
-
-  const handlePublish = async () => {
-    if (!isValidGithubUrl) {
-      toast({
-        variant: "destructive",
-        title: "Invalid GitHub configuration",
-        description: "Please provide a valid GitHub repository URL.",
-      });
-      return;
-    }
-    
-    setIsPublishing(true);
-    
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const mockCanonicalUrl = `https://cloud.example.com/projects/${repoOwner}/${repoName}`;
-      setCanonicalUrl(mockCanonicalUrl);
-      
-      toast({
-        title: "Published successfully",
-        description: "Your project has been published to the GitHub repository.",
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Publish failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
-      });
-    } finally {
-      setIsPublishing(false);
-    }
-  };
-
-  const handleCommit = async () => {
-    if (!isValidCommitMessage || !repoOwner || !repoName) {
-      toast({
-        variant: "destructive",
-        title: "Invalid configuration",
-        description: "Please provide a valid commit message and repository details.",
-      });
-      return;
-    }
-    
-    setIsCommitting(true);
-    
-    try {
-      toast({
-        title: "Committing changes...",
-        description: `Commit message: "${commitMessage}"`,
-      });
-      
-      window.dispatchEvent(new CustomEvent('lovable:commit', {
-        detail: {
-          message: commitMessage,
-          repository: repoName.replace('.git', ''),
-          owner: repoOwner
-        }
-      }));
-      
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      setLastCommitHash('Committed');
-      
-      toast({
-        title: "Changes committed",
-        description: `Successfully committed with message: "${commitMessage}"`,
-      });
-      
-      setCommitMessage('');
-    } catch (error) {
-      console.error('Commit error:', error);
-      toast({
-        variant: "destructive",
-        title: "Commit failed",
-        description: "Commit failed. Make sure you've connected your GitHub account in Lovable settings.",
-      });
-    } finally {
-      setIsCommitting(false);
-    }
-  };
+  }, [isOpen]);
 
   const currentRole = getCurrentRole();
-  const showPublishTab = currentRole === ROLE.DEVELOPER;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -362,19 +236,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs defaultValue={showPublishTab ? "publish" : "access"} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs defaultValue="access" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="access" className="flex items-center gap-1">
               <Key className="h-4 w-4" /> Access
             </TabsTrigger>
             <TabsTrigger value="manage" className="flex items-center gap-1">
               <UserCog className="h-4 w-4" /> Manage
-            </TabsTrigger>
-            <TabsTrigger 
-              value="publish" 
-              className={`flex items-center gap-1 ${showPublishTab ? "" : "hidden"}`}
-            >
-              <Github className="h-4 w-4" /> Publish
             </TabsTrigger>
           </TabsList>
           
@@ -510,103 +378,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             </div>
           </TabsContent>
           
-          {showPublishTab && (
-            <TabsContent value="publish" className="mt-4 space-y-4">
-              <div className="space-y-2">
-                <h3 className="text-lg font-medium flex items-center gap-2">
-                  <Github className="h-5 w-5" />
-                  GitHub Integration
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Commit changes to your GitHub repository.
-                </p>
-              </div>
-              
-              <div className="space-y-3 border p-3 rounded-md">
-                <div>
-                  <label htmlFor="github-url-input" className="text-sm font-medium block mb-1">
-                    GitHub Repository URL
-                  </label>
-                  <Input
-                    id="github-url-input"
-                    type="url"
-                    value={githubUrl}
-                    onChange={handleGitHubUrlChange}
-                    placeholder="https://github.com/your-username/your-repo"
-                    className="font-mono text-sm"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Enter the full URL to your GitHub repository
-                  </p>
-                </div>
-                
-                <Button 
-                  onClick={handlePublish} 
-                  disabled={!isValidGithubUrl || isPublishing}
-                  className="w-full bg-green-600 hover:bg-green-700"
-                >
-                  {isPublishing ? 'Publishing...' : 'Publish Project'}
-                </Button>
-                
-                {canonicalUrl && (
-                  <div className="mt-4 p-3 border rounded-md bg-secondary">
-                    <span className="text-sm font-medium block mb-1">Canonical URL:</span>
-                    <a 
-                      href={canonicalUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline font-mono text-sm break-all"
-                    >
-                      {canonicalUrl}
-                    </a>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-border">
-                <div className="space-y-2">
-                  <h3 className="text-lg font-medium flex items-center gap-2">
-                    <GitCommit className="h-5 w-5" />
-                    Git Commit
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Commit your changes directly to GitHub.
-                  </p>
-                </div>
-                
-                <div className="space-y-3 mt-3">
-                  <div>
-                    <label htmlFor="commit-message-input" className="text-sm font-medium block mb-1">
-                      Commit Message
-                    </label>
-                    <Textarea
-                      id="commit-message-input"
-                      value={commitMessage}
-                      onChange={(e) => setCommitMessage(e.target.value)}
-                      placeholder="Enter your commit message here..."
-                      className="min-h-[80px] font-mono text-sm"
-                    />
-                  </div>
-                  
-                  <Button 
-                    onClick={handleCommit} 
-                    disabled={!isValidCommitMessage || isCommitting || !repoOwner || !repoName}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-                    variant="outline"
-                  >
-                    {isCommitting ? 'Committing...' : 'Commit Changes'}
-                  </Button>
-                  
-                  {lastCommitHash && (
-                    <div className="p-3 border rounded-md bg-secondary">
-                      <span className="text-sm font-medium">Last Commit:</span>
-                      <span className="ml-2 font-mono text-sm">{lastCommitHash}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </TabsContent>
-          )}
         </Tabs>
         
         <DialogFooter>

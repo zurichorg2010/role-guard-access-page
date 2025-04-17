@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Settings, Shield, Lock, Info, Users } from 'lucide-react';
-import { ROLE, hasAccess, applyRoleRestrictions, getCurrentRole, canAccessGitHubSync } from '@/utils/roleGuard';
+import { ROLE, hasAccess, applyRoleRestrictions, getCurrentRole } from '@/utils/roleGuard';
 import SettingsModal from '@/components/SettingsModal';
 import RoleIndicator from '@/components/RoleIndicator';
-import { GitHubSyncForm } from '@/components/GitHubSyncForm';
 
 const Index = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -44,20 +43,6 @@ const Index = () => {
             <Settings className="h-5 w-5" /> Role Settings
           </Button>
         </div>
-
-        {canAccessGitHubSync() && (
-          <Card className="max-w-md mx-auto">
-            <CardHeader>
-              <CardTitle>GitHub Sync</CardTitle>
-              <CardDescription>
-                Sync your changes to GitHub with a commit message
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <GitHubSyncForm />
-            </CardContent>
-          </Card>
-        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>

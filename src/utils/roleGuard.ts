@@ -152,9 +152,3 @@ export function canManageRole(targetRole: string): boolean {
   // Visitors can't manage any roles
   return false;
 }
-
-// Add function to check if user can access GitHub sync
-export function canAccessGitHubSync(): boolean {
-  const currentRole = getCurrentRole();
-  return currentRole === ROLE.OWNER;
-}
