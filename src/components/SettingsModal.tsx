@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -12,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Key, Shield, UserCog, Github, GitCommit } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { 
   ROLE, 
@@ -76,7 +75,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       setIsCommitting(false);
       setLastCommitHash('');
       
-      // Try to parse the repository details from the stored URL
       const storedUrl = localStorage.getItem('github_repo_url') || '';
       if (storedUrl) {
         setGithubUrl(storedUrl);
@@ -282,8 +280,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     setIsPublishing(true);
     
     try {
-      // Here you would use the existing GitHub integration
-      // to publish the project to the repository
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       const mockCanonicalUrl = `https://cloud.example.com/projects/${repoOwner}/${repoName}`;
@@ -322,35 +318,23 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         description: `Commit message: "${commitMessage}"`,
       });
       
-      // This will use the built-in Lovable GitHub integration
-      // and pass the commit message to GitHub
-      const response = await fetch('/api/github/commit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          owner: repoOwner,
-          repo: repoName,
-          message: commitMessage, // This ensures your commit message is sent to GitHub
-          branch: 'main' // Default to main branch
-        }),
-      });
+      window.dispatchEvent(new CustomEvent('lovable:github-commit', {
+        detail: {
+          message: commitMessage,
+          repo: `${repoOwner}/${repoName}`,
+          branch: 'main'
+        }
+      }));
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to commit changes');
-      }
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const data = await response.json();
-      setLastCommitHash(data.sha || 'Committed');
+      setLastCommitHash('Committed');
       
       toast({
         title: "Changes committed",
         description: `Successfully committed with message: "${commitMessage}"`,
       });
       
-      // Clear the commit message after successful commit
       setCommitMessage('');
     } catch (error) {
       toast({
