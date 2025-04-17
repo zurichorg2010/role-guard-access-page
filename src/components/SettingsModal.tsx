@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -11,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Key, Shield, UserCog } from 'lucide-react';
+import { Settings, Key, Shield, UserCog, Github } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { 
   ROLE, 
@@ -39,11 +38,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [customRoles, setCustomRoles] = useState<Record<string, string>>(getCustomRoles());
   const [newRoleName, setNewRoleName] = useState('');
   const [newRoleCode, setNewRoleCode] = useState('');
+  const [githubUrl, setGithubUrl] = useState('');
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [canonicalUrl, setCanonicalUrl] = useState('');
   const { toast } = useToast();
   const currentRole = getCurrentRole();
+  
+  const githubUrlPattern = /^https:\/\/github\.com\/[^\/]+\/[^\/]+(?:\/)?$/i;
+  const isValidGithubUrl = githubUrlPattern.test(githubUrl.trim());
 
   useEffect(() => {
-    // Reset form state when modal opens
     if (isOpen) {
       setAccessCode('');
       setOwnerCode(getOwnerCode());
@@ -51,6 +55,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       setCustomRoles(getCustomRoles());
       setNewRoleName('');
       setNewRoleCode('');
+      setGithubUrl('');
+      setCanonicalUrl('');
+      setIsPublishing(false);
     }
   }, [isOpen]);
 
@@ -75,7 +82,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
           description: `You are now a ${getCurrentRole()}.`,
         });
         
-        // Trigger a custom event to notify components about the role change
         document.dispatchEvent(new Event('roleChanged'));
         
         onClose();
@@ -221,6 +227,34 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  const handlePublish = async () => {
+    if (!isValidGithubUrl) return;
+    
+    setIsPublishing(true);
+    
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const mockCanonicalUrl = `https://cloud.example.com/projects/${githubUrl.replace('https://github.com/', '')}`;
+      setCanonicalUrl(mockCanonicalUrl);
+      
+      toast({
+        title: "Published successfully",
+        description: "Your project has been published to the cloud.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Publish failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+      });
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const showPublishTab = currentRole === ROLE.DEVELOPER;
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[500px]">
@@ -234,13 +268,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         </DialogHeader>
         
         <Tabs defaultValue="access" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className={`grid w-full ${showPublishTab ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <TabsTrigger value="access" className="flex items-center gap-1">
               <Key className="h-4 w-4" /> Access
             </TabsTrigger>
             <TabsTrigger value="manage" className="flex items-center gap-1">
               <UserCog className="h-4 w-4" /> Manage Codes
             </TabsTrigger>
+            {showPublishTab && (
+              <TabsTrigger value="publish" className="flex items-center gap-1">
+                <Github className="h-4 w-4" /> Publish
+              </TabsTrigger>
+            )}
           </TabsList>
           
           <TabsContent value="access" className="mt-4">
@@ -313,7 +352,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               </div>
             )}
             
-            {/* Custom Roles Management */}
             <div className="space-y-4">
               <h3 className="text-sm font-medium">Custom Roles</h3>
               
@@ -346,7 +384,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 <p className="text-sm text-muted-foreground">No custom roles yet.</p>
               )}
               
-              {/* Add new custom role form */}
               {(currentRole === ROLE.DEVELOPER || currentRole === ROLE.OWNER || currentRole === ROLE.ADMIN) && (
                 <div className="border p-3 rounded-md space-y-3">
                   <h4 className="text-sm font-medium">Add New Custom Role</h4>
@@ -376,6 +413,58 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               )}
             </div>
           </TabsContent>
+          
+          {showPublishTab && (
+            <TabsContent value="publish" className="mt-4 space-y-4">
+              <div className="space-y-2">
+                <h3 className="text-lg font-medium">Publish to Cloud</h3>
+                <p className="text-sm text-muted-foreground">
+                  Deploy this application to the cloud by connecting it to a GitHub repository.
+                </p>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="github-url-input" className="text-sm font-medium block mb-1">
+                    GitHub Repository URL
+                  </label>
+                  <Input
+                    id="github-url-input"
+                    type="url"
+                    value={githubUrl}
+                    onChange={(e) => setGithubUrl(e.target.value)}
+                    placeholder="https://github.com/your-org/your-repo"
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Enter the full URL to your GitHub repository
+                  </p>
+                </div>
+                
+                <Button 
+                  onClick={handlePublish} 
+                  disabled={!isValidGithubUrl || isPublishing}
+                  className="w-full"
+                >
+                  {isPublishing ? 'Publishing...' : 'Publish'}
+                </Button>
+                
+                {canonicalUrl && (
+                  <div className="mt-4 p-3 border rounded-md bg-secondary">
+                    <span className="text-sm font-medium block mb-1">Canonical URL:</span>
+                    <a 
+                      href={canonicalUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline font-mono text-sm break-all"
+                    >
+                      {canonicalUrl}
+                    </a>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
         
         <DialogFooter>
